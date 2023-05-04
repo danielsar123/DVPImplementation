@@ -44,7 +44,7 @@ namespace DVPImplementation
                     case "server":
                         try
                         {
-                            updateInterval = int.Parse(commands[4]); // because update inteval is 4th position in array 
+                            updateInterval = int.Parse(commands[4]); // update interval is 4th position in array 
 
                         }
                         catch
@@ -55,7 +55,30 @@ namespace DVPImplementation
                         string fileName = commands[2];
                         nodes = ReadTF(fileName, nodes);
                         nodes = CreateTable(nodes);
-                        
+
+                         routingTableTF = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
+
+                        for (int i = 0; i < nodes.Count; i++)
+                        {
+                            if (nodes[i].id == serverID)
+                            {
+                                for (int s = 0; s < nodes[i].routingTable.GetLength(0); s++)
+                                {
+                                    for (int t = 0; t < nodes[i].routingTable.GetLength(1); t++)
+                                    {
+                                        routingTableTF[s, t] = nodes[i].routingTable[s, t];
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
+                        Console.WriteLine(commands[0] + " Success!");
+                        break;
+
+
+
+
                 }
 
 
@@ -175,6 +198,69 @@ namespace DVPImplementation
 
         static List<Node> CreateTable(List<Node> nodes)
         {
+            // Iterate through all the servers
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                // Create a new routing table for the current server
+                nodes[i].routingTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
+
+                // If the current server is the one we need
+                if (nodes[i].id == serverID)
+                {
+                    // Initialize the routing table for the current server
+                    for (int j = 0; j < nodes.Count + numOfDisabled; j++)
+                    {
+                        for (int k = 0; k < nodes.Count + numOfDisabled; k++)
+                        {
+                            // Set the distance to itself as 0
+                            if (j == k)
+                            {
+                                nodes[i].routingTable[j, k] = 0;
+                            }
+                            else
+                            {
+                                // Set the distance to other servers as 9999 (a large value)
+                                nodes[i].routingTable[j, k] = 9999;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    // Initialize the routing table for the other servers with 9999 (a large value)
+                    for (int j = 0; j < nodes.Count + numOfDisabled; j++)
+                    {
+                        for (int k = 0; k < nodes.Count + numOfDisabled; k++)
+                        {
+                            nodes[i].routingTable[j, k] = 9999;
+                        }
+                    }
+                }
+            }
+
+            // Iterate through all the servers again
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                // If the current server is the one we need
+                if (nodes[i].id == serverID)
+                {
+                    // Iterate through the routing table of the current server
+                    for (int j = 0; j < nodes.Count + numOfDisabled; j++)
+                    {
+                        // If the current index + 1 is equal to the server ID we need
+                        if (j + 1 == serverID)
+                        {
+                            // Iterate through the neighbors of the current server and update the routing table
+                            foreach (KeyValuePair<int, int> entry in nodes[i].neighborsIdAndCost)
+                            {
+                                nodes[i].routingTable[j, entry.Key - 1] = entry.Value;
+                            }
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
             return nodes;
         }
     }
