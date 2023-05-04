@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 namespace DVPImplementation
 {
     public class Program
-    { 
+    {
 
         static List<Node> nodes = new List<Node>();
         static int[,] routingTableTF;
@@ -32,9 +32,9 @@ namespace DVPImplementation
                 string line = Console.ReadLine();
                 string[] commands = line.Split(' '); // seperate the commands, store them in String array
 
-                if(commands.Length < 1)
+                if (commands.Length < 1 || string.IsNullOrWhiteSpace(line))
                 {
-                    Console.Write("Nothing inputted, try again!");
+                    Console.WriteLine("Nothing inputted, try again!");
                     //skip to next iteration if no user input
                     continue;
                 }
@@ -56,7 +56,7 @@ namespace DVPImplementation
                         nodes = ReadTF(fileName, nodes);
                         nodes = CreateTable(nodes);
 
-                         routingTableTF = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
+                        routingTableTF = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
 
                         for (int i = 0; i < nodes.Count; i++)
                         {
@@ -76,6 +76,12 @@ namespace DVPImplementation
                         Console.WriteLine(commands[0] + " Success!");
                         break;
 
+                    case "display":
+                        DisplayRT(nodes);
+                        Console.WriteLine(commands[0] + " Success!");
+                        break;
+                    default:
+                        break;
 
 
 
@@ -86,6 +92,25 @@ namespace DVPImplementation
             }
 
 
+        }
+
+        static void DisplayRT(List<Node> nodes) {
+            Console.WriteLine("Routing Table is:");
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                if (nodes[i].id == serverID)
+                {
+                    for (int j = 0; j < nodes[i].routingTable.GetLength(0); j++)
+                    {
+                        for (int k = 0; k < nodes[i].routingTable.GetLength(1); k++)
+                        {
+                            Console.Write(nodes[i].routingTable[j, k] + "\t");
+                        }
+                        Console.WriteLine();
+                    }
+                    break;
+                }
+            }
         }
 
         static List<Node> ReadTF(string file, List<Node> nodes)
@@ -107,7 +132,7 @@ namespace DVPImplementation
                 }
                 else
                 {
-                    throw new Exception("Incorrect format!");
+                    throw new Exception("Incorrect format1!");
                 }
 
                 if((line = reader.ReadLine()) != null)
@@ -116,7 +141,7 @@ namespace DVPImplementation
                 }
                 else
                 {
-                    throw new Exception("Incorrect format!");
+                    throw new Exception("Incorrect format2!");
                 }
 
                 for (int i=0; i < numOfServers; i++)
@@ -127,7 +152,7 @@ namespace DVPImplementation
 
                         if (splitLine.Length != 3)
                         {
-                            throw new Exception("Incorrect format!");
+                            throw new Exception("Incorrect format3!");
                         }
                         else
                         {
@@ -148,7 +173,7 @@ namespace DVPImplementation
                     }
                     else
                     {
-                        throw new Exception("Incorrect format!");
+                        throw new Exception("Incorrect format4!");
                     }
                 }
 
