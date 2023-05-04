@@ -96,12 +96,20 @@ namespace DVPImplementation
 
         static void DisplayRT(List<Node> nodes) {
             Console.WriteLine("Routing Table is:");
+           
             for (int i = 0; i < nodes.Count; i++)
             {
                 if (nodes[i].id == serverID)
                 {
+                    Console.Write("\t");
+                    for (int t = 0; t < nodes.Count; t++)
+                    {
+                        Console.Write(nodes[t].id + "\t");
+                    }
+                    Console.WriteLine();
                     for (int j = 0; j < nodes[i].routingTable.GetLength(0); j++)
                     {
+                        Console.Write((j + 1) + "\t");
                         for (int k = 0; k < nodes[i].routingTable.GetLength(1); k++)
                         {
                             Console.Write(nodes[i].routingTable[j, k] + "\t");
@@ -111,6 +119,7 @@ namespace DVPImplementation
                     break;
                 }
             }
+
         }
 
         static List<Node> ReadTF(string file, List<Node> nodes)
