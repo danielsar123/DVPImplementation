@@ -109,6 +109,9 @@ namespace DVPImplementation
                     case "step":
                         DoStep(nodes);
                         break;
+                    case "packets":
+                        DisplayPackets(nodes);
+                        break;
                 }
 
 
@@ -525,7 +528,20 @@ namespace DVPImplementation
 
            // DoStep(nodes);
         }
-        
+        private static void DisplayPackets(List<Node> nodes)
+        {
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                if (nodes[i].id == serverID)
+                {
+                    Console.WriteLine($"Number of packets received: {nodes[i].numOfPackets}");
+                    nodes[i].numOfPackets = 0;
+                    break;
+                }
+            }
+            
+        }
+
 
         static List<Node> CreateTable(List<Node> nodes)
         {
