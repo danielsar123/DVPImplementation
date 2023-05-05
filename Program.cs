@@ -502,14 +502,17 @@ namespace DVPImplementation
             {
                 for (int i = 0; i < nodes.Count; i++)
                 {
-                    IPAddress ip = IPAddress.Parse(nodes[i].ipAddress);
-                    using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                    if (nodes[i].id == link1 || nodes[i].id == link2)
                     {
-                        socket.Connect(ip, nodes[i].port);
-                        using (NetworkStream networkStream = new NetworkStream(socket))
-                        using (StreamWriter writer = new StreamWriter(networkStream, Encoding.UTF8))
+                        IPAddress ip = IPAddress.Parse(nodes[i].ipAddress);
+                        using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
                         {
-                            writer.Write(obj.ToString());
+                            socket.Connect(ip, nodes[i].port);
+                            using (NetworkStream networkStream = new NetworkStream(socket))
+                            using (StreamWriter writer = new StreamWriter(networkStream, Encoding.UTF8))
+                            {
+                                writer.Write(obj.ToString());
+                            }
                         }
                     }
                 }
@@ -520,7 +523,7 @@ namespace DVPImplementation
                 Console.WriteLine(e.StackTrace);
             }
 
-            DoStep(nodes);
+           // DoStep(nodes);
         }
         
 
