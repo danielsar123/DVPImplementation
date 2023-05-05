@@ -10,17 +10,19 @@ using System.Net.Sockets;
 using System.Timers;
 using Newtonsoft.Json.Linq;
 using System.Runtime.InteropServices;
+using static DVPImplementation.Program;
+
 
 namespace DVPImplementation
 {
     public class Program
     {
 
-        static List<Node> nodes = new List<Node>();
-        static int[,] routingTableTF;
-        static int updateInterval = 1000;
-        static int serverID = 1;
-        static int numOfDisabled = 0;
+        public static List<Node> nodes = new List<Node>();
+        public static int[,] routingTableTF;
+        public static int updateInterval = 1000;
+        public static int serverID = 1;
+        public static int numOfDisabled = 0;
         static void Main(string[] args)
         {
             Console.WriteLine("Hello, begin with following command: \"server -t <topology-file-name> -i <routing-update-interval>\"");
@@ -83,6 +85,26 @@ namespace DVPImplementation
                     default:
                         break;
 
+                    case "update":
+                        int linkServer1 = int.Parse(commands[1]);
+                        int linkServer2 = int.Parse(commands[2]);
+                        string newCostOfLink = commands[3];
+
+                        if (linkServer1 == linkServer2)
+                        {
+                            Console.WriteLine("Error: Same Line");
+                            break;
+                        }
+                        else if (linkServer2 == serverID)
+                        {
+                            SendCost(linkServer2, linkServer1, newCostOfLink);
+                            break;
+                        }
+                        else
+                        {
+                            SendCost(linkServer1, linkServer2, newCostOfLink);
+                            break;
+                        }
 
 
                 }
@@ -121,7 +143,55 @@ namespace DVPImplementation
             }
 
         }
+        static void SendRTtoNeighbor(string neighborIP, int neighborPort)
+        {
+            JObject obj = new JObject();
+            try
+            {
+                obj.Add("operation", "step");
+                obj.Add("id_of_sender", serverID);
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    if (nodes[i].id == serverID)
+                    {
+                        obj.Add("rt", JToken.FromObject(nodes[i].routingTable));
+                        break;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("JSON Object Error");
+                Console.WriteLine(e.StackTrace);
+            }
+            try
+            {
+                IPAddress ip = IPAddress.Parse(neighborIP);
+                TcpClient client = new TcpClient();
+                client.Connect(ip, neighborPort);
 
+                NetworkStream stream = client.GetStream();
+                StreamWriter writer = new StreamWriter(stream);
+                StreamReader reader = new StreamReader(stream);
+
+                writer.Write(obj.ToString());
+                writer.Flush();
+
+                client.Close();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exception: " + e.ToString());
+            }
+        }
+        
+
+
+
+        public static List<Node> UpdateRT(List<Node> nodes, int[,] newTable)
+        {
+            return nodes;
+        }
         static List<Node> ReadTF(string file, List<Node> nodes)
         {
             int numOfServers = 0;
@@ -228,6 +298,10 @@ namespace DVPImplementation
             return nodes;
         }
 
+        public static void SendCost(int link1, int link2, String newCost)
+        {
+
+        }
         
 
         static List<Node> CreateTable(List<Node> nodes)
@@ -420,6 +494,35 @@ namespace DVPImplementation
 
                     // parse the received JSON
                     JObject receivedJson = JObject.Parse(line);
+
+                    switch (receivedJson["operation"].ToString())
+                    {
+                        case "step":
+                            Console.WriteLine("Received a Message From Server " + receivedJson["id_of_sender"]);
+
+                            int[,] newTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
+                            JArray jsonArray = JArray.Parse(receivedJson["rt"].ToString());
+                            for (int a = 0; a < jsonArray.Count; a++)
+                            {
+                                JArray innerJsonArray = (JArray)jsonArray[a];
+                                for (int b = 0; b < innerJsonArray.Count; b++)
+                                {
+                                    newTable[a, b] = int.Parse(innerJsonArray[b].ToString());
+                                }
+                            }
+
+                            for (int i = 0; i < nodes.Count; i++)
+                            {
+                                if (nodes[i].id == Program.serverID)
+                                {
+                                    nodes[i].numOfPackets++;
+                                    break;
+                                }
+                            }
+
+                            nodes = UpdateRT(nodes, newTable);
+                            break;
+                    }
                 }
             }
             catch (Exception e)
