@@ -87,23 +87,23 @@ namespace DVPImplementation
                         break;
 
                     case "update":
-                        int linkServer1 = int.Parse(commands[1]);
-                        int linkServer2 = int.Parse(commands[2]);
-                        string newCostOfLink = commands[3];
+                        int link1 = int.Parse(commands[1]);
+                        int link2 = int.Parse(commands[2]);
+                        string newCost = commands[3];
 
-                        if (linkServer1 == linkServer2)
+                        if (link1 == link2)
                         {
                             Console.WriteLine("Error: Same Line");
                             break;
                         }
-                        else if (linkServer2 == serverID)
+                        else if (link2 == serverID)
                         {
-                            SendCost(linkServer2, linkServer1, newCostOfLink);
+                            SendCost(link2, link1, newCost);
                             break;
                         }
                         else
                         {
-                            SendCost(linkServer1, linkServer2, newCostOfLink);
+                            SendCost(link1, link2, newCost);
                             break;
                         }
                     case "step":
@@ -340,7 +340,7 @@ namespace DVPImplementation
             {
                 nodes[i].routingTable = myNewRoutingTable;
                 // send routing table to neighbors
-                DoStep(nodes);
+                //DoStep(nodes);
             }
 
             return nodes;
@@ -466,7 +466,61 @@ namespace DVPImplementation
 
         public static void SendCost(int link1, int link2, String newCost)
         {
+            if (newCost.Equals("inf", StringComparison.OrdinalIgnoreCase))
+            {
+                routingTableTF[link1 - 1, link2 - 1] = 9999;
+            }
+            else
+            {
+                routingTableTF[link1 - 1, link2 - 1] = int.Parse(newCost);
+            }
 
+            for (int x = 0; x < nodes.Count; x++)
+            {
+                if (nodes[x].id == serverID)
+                {
+                    for (int i = 0; i < routingTableTF.GetLength(0); i++)
+                    {
+                        for (int j = 0; j < routingTableTF.GetLength(1); j++)
+                        {
+                            nodes[x].routingTable[i, j] = routingTableTF[i, j];
+                        }
+                    }
+                    break;
+                }
+            }
+
+            JObject obj = new JObject
+    {
+        { "operation", "update" },
+        { "update_server_id_1", link1 },
+        { "update_server_id_2", link2 },
+        { "cost", newCost }
+    };
+
+            try
+            {
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    IPAddress ip = IPAddress.Parse(nodes[i].ipAddress);
+                    using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                    {
+                        socket.Connect(ip, nodes[i].port);
+                        using (NetworkStream networkStream = new NetworkStream(socket))
+                        using (StreamWriter writer = new StreamWriter(networkStream, Encoding.UTF8))
+                        {
+                            writer.Write(obj.ToString());
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error sending update to neighbors");
+                Console.WriteLine(e.StackTrace);
+            }
+
+            DoStep(nodes);
         }
         
 
@@ -661,11 +715,11 @@ namespace DVPImplementation
                     }
 
                     string json = sb.ToString();
-                    Console.WriteLine($"Received: {json}");
+                  //  Console.WriteLine($"Received: {json}");
 
                     JObject receivedJson = JObject.Parse(json);
 
-                    Console.WriteLine($"Received: {line}");
+                    //Console.WriteLine($"Received: {line}");
 
                         // parse the received JSON
                         
@@ -697,6 +751,37 @@ namespace DVPImplementation
 
                                 nodes = UpdateRT(nodes, newTable);
                                 break;
+
+                        case "update":
+                            string newCost = receivedJson["cost"].ToString();
+                            int server1 = int.Parse(receivedJson["update_server_id_1"].ToString());
+                            int server2 = int.Parse(receivedJson["update_server_id_2"].ToString());
+
+                            if (newCost.Equals("inf", StringComparison.OrdinalIgnoreCase))
+                            {
+                                routingTableTF[server2 - 1, server1 - 1] = 9999;
+                            }
+                            else
+                            {
+                                routingTableTF[server2 - 1, server1 - 1] = int.Parse(newCost);
+                            }
+
+                            for (int x = 0; x < nodes.Count; x++)
+                            {
+                                if (nodes[x].id == serverID)
+                                {
+                                    for (int i = 0; i < routingTableTF.GetLength(0); i++)
+                                    {
+                                        for (int j = 0; j < routingTableTF.GetLength(1); j++)
+                                        {
+                                            nodes[x].routingTable[i, j] = routingTableTF[i, j];
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+
+                            break;
                         }
                     }
                
