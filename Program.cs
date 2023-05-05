@@ -119,9 +119,9 @@ namespace DVPImplementation
         }
         
         
-            private static void DoStep(List<Node> allServers)
+            private static void DoStep(List<Node> nodes)
             {
-                foreach (var server in allServers)
+                foreach (var server in nodes)
                 {
                     if (server.id == serverID)
                     {
@@ -133,7 +133,7 @@ namespace DVPImplementation
                             int portOfNeighbor = 0;
 
                             // find ip of neighbor and send routing table to that neighbor
-                            foreach (var s in allServers)
+                            foreach (var s in nodes)
                             {
                                 if (s.id == neighbor.Key)
                                 {
@@ -237,6 +237,112 @@ namespace DVPImplementation
 
         public static List<Node> UpdateRT(List<Node> nodes, int[,] newTable)
         {
+        
+
+            // Initialize original and new routing tables
+            int[,] myOriginalRoutingTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
+            int[,] myNewRoutingTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
+
+            // Find the index of the server with matching id
+            int i;
+            for (i = 0; i < nodes.Count; i++)
+            {
+                if (nodes[i].id == serverID)
+                {
+                    // Copy the routing table of the matching server
+                    for (int a = 0; a < nodes[i].routingTable.GetLength(0); a++)
+                    {
+                        for (int b = 0; b < nodes[i].routingTable.GetLength(1); b++)
+                        {
+                            myOriginalRoutingTable[a, b] = nodes[i].routingTable[a, b];
+                            myNewRoutingTable[a, b] = nodes[i].routingTable[a, b];
+                        }
+                    }
+                    break;
+                }
+            }
+
+            // Get the ids of neighbors of the server
+            int[] neighbors = new int[nodes[i].neighborsIdAndCost.Count];
+            int x = 0;
+            foreach (var entry in nodes[i].neighborsIdAndCost)
+            {
+                neighbors[x] = entry.Key;
+                x++;
+            }
+
+            // Update new routing table using the received routing table
+            for (int j = 0; j < myNewRoutingTable.GetLength(0); j++)
+            {
+                if (j + 1 == serverID)
+                {
+                    continue;
+                }
+                for (int k = 0; k < myNewRoutingTable.GetLength(1); k++)
+                {
+                    if (j == k)
+                    {
+                        continue;
+                    }
+                    if (myNewRoutingTable[j, k] < newTable[j,k])
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        myNewRoutingTable[j, k] = newTable[j,k];
+                    }
+                }
+            }
+
+            // Update new routing table using distance vector algorithm
+            for (int j = 0; j < myNewRoutingTable.GetLength(0); j++)
+            {
+                if (j + 1 == serverID)
+                {
+                    for (int k = 0; k < myNewRoutingTable.GetLength(1); k++)
+                    {
+                        if (j == k)
+                        {
+                            continue;
+                        }
+                        int[] newCosts = new int[nodes[i].neighborsIdAndCost.Count];
+                        for (int a = 0; a < neighbors.Length; a++)
+                        {
+                            newCosts[a] = myNewRoutingTable[j, neighbors[a] - 1] + myNewRoutingTable[neighbors[a] - 1, k];
+                        }
+                        int minCost = 9999;
+                        for (int a = 0; a < newCosts.Length; a++)
+                        {
+                            if (minCost > newCosts[a])
+                            {
+                                minCost = newCosts[a];
+                            }
+                        }
+                        myNewRoutingTable[j, k] = minCost;
+                    }
+                }
+            }
+            bool didRoutingTableChange = false;
+            for (int s = 0; s < nodes[i].routingTable.GetLength(0); s++)
+            {
+                for (int t = 0; t < nodes[i].routingTable.GetLength(1); t++)
+                {
+                    if (myNewRoutingTable[s, t] != myOriginalRoutingTable[s, t])
+                    {
+                        didRoutingTableChange = true;
+                        break;
+                    }
+                }
+            }
+
+            if (didRoutingTableChange)
+            {
+                nodes[i].routingTable = myNewRoutingTable;
+                // send routing table to neighbors
+                DoStep(nodes);
+            }
+
             return nodes;
         }
         static List<Node> ReadTF(string file, List<Node> nodes)
