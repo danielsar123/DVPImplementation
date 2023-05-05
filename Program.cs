@@ -11,7 +11,8 @@ using System.Timers;
 using Newtonsoft.Json.Linq;
 using System.Runtime.InteropServices;
 using static DVPImplementation.Program;
-
+using System.Runtime.InteropServices.ComTypes;
+using Newtonsoft.Json;
 
 namespace DVPImplementation
 {
@@ -105,8 +106,9 @@ namespace DVPImplementation
                             SendCost(linkServer1, linkServer2, newCostOfLink);
                             break;
                         }
-
-
+                    case "step":
+                        DoStep(nodes);
+                        break;
                 }
 
 
@@ -115,6 +117,51 @@ namespace DVPImplementation
 
 
         }
+        
+        
+            private static void DoStep(List<Node> allServers)
+            {
+                foreach (var server in allServers)
+                {
+                    if (server.id == serverID)
+                    {
+                        //Console.WriteLine("my servers id = " + server.Id);
+
+                        foreach (var neighbor in server.neighborsIdAndCost)
+                        {
+                            string ipAddressOfNeighbor = "";
+                            int portOfNeighbor = 0;
+
+                            // find ip of neighbor and send routing table to that neighbor
+                            foreach (var s in allServers)
+                            {
+                                if (s.id == neighbor.Key)
+                                {
+                                    ipAddressOfNeighbor = s.ipAddress;
+                                    portOfNeighbor = s.port;
+                                    break;
+                                }
+                            }
+
+                            //Console.WriteLine("ipaddress of neighbor = " + ipAddressOfNeighbor);
+                            //Console.WriteLine("port of neighbor = " + portOfNeighbor);
+                            try
+                            {
+                                //Console.WriteLine("send message");
+                                SendRTtoNeighbor(ipAddressOfNeighbor, portOfNeighbor);
+                                //Console.WriteLine("message sent");
+                            }
+                            catch (Exception e)
+                            {
+                                // handle exception
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+
+        
 
         static void DisplayRT(List<Node> nodes) {
             Console.WriteLine("Routing Table is:");
@@ -173,7 +220,7 @@ namespace DVPImplementation
                 NetworkStream stream = client.GetStream();
                 StreamWriter writer = new StreamWriter(stream);
                 StreamReader reader = new StreamReader(stream);
-
+                Console.WriteLine("Sending JSON: " + obj.ToString());
                 writer.Write(obj.ToString());
                 writer.Flush();
 
@@ -196,6 +243,19 @@ namespace DVPImplementation
         {
             int numOfServers = 0;
             int numofNeighbors = 0;
+
+            Console.Write("Enter the server ID: ");
+            string input = Console.ReadLine();
+            
+            if (int.TryParse(input, out serverID))
+            {
+                Console.WriteLine($"Server ID set to {serverID}");
+            }
+            else
+            {
+                Console.WriteLine("Invalid input. Please enter a valid integer.");
+            }
+
 
             Dictionary<int, int> newIdCost = new Dictionary<int, int>();
 
@@ -268,7 +328,7 @@ namespace DVPImplementation
                         }
                         else
                         {
-                            serverID = int.Parse(splitLine[0]);
+                          
                             newIdCost[int.Parse(splitLine[1])] = int.Parse(splitLine[2]);
                         }
                     }
@@ -462,68 +522,78 @@ namespace DVPImplementation
     }
     public class Listener
     {
-        private Socket socket = null;
-        private TcpListener server = null;
-        private BinaryReader inStream = null;
-        private int port = 0;
+        private TcpListener server;
+        private int port;
+
         public Listener(int port)
         {
             this.port = port;
         }
+
         public void Listen()
         {
             try
             {
-                // create TcpListener object and start listening for incoming connections
                 server = new TcpListener(IPAddress.Any, port);
                 server.Start();
-
-                Console.WriteLine("Server started, waiting for a client...");
+                
 
                 while (true)
                 {
-                    // accept client connection
-                    socket = server.AcceptSocket();
+                    Console.WriteLine("Waiting for client connection...");
+                    TcpClient client = server.AcceptTcpClient();
                     Console.WriteLine("Client connected.");
 
-                    // read data from the client socket
-                    inStream = new BinaryReader(new BufferedStream(new NetworkStream(socket)));
+                    NetworkStream stream = client.GetStream();
+                    StreamReader reader = new StreamReader(stream);
 
-                    string line = inStream.ReadString();
-                    Console.WriteLine(line);
-
-                    // parse the received JSON
-                    JObject receivedJson = JObject.Parse(line);
-
-                    switch (receivedJson["operation"].ToString())
+                    string line = "";
+                    StringBuilder sb = new StringBuilder();
+                    while ((line = reader.ReadLine()) != null)
                     {
-                        case "step":
-                            Console.WriteLine("Received a Message From Server " + receivedJson["id_of_sender"]);
-
-                            int[,] newTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
-                            JArray jsonArray = JArray.Parse(receivedJson["rt"].ToString());
-                            for (int a = 0; a < jsonArray.Count; a++)
-                            {
-                                JArray innerJsonArray = (JArray)jsonArray[a];
-                                for (int b = 0; b < innerJsonArray.Count; b++)
-                                {
-                                    newTable[a, b] = int.Parse(innerJsonArray[b].ToString());
-                                }
-                            }
-
-                            for (int i = 0; i < nodes.Count; i++)
-                            {
-                                if (nodes[i].id == Program.serverID)
-                                {
-                                    nodes[i].numOfPackets++;
-                                    break;
-                                }
-                            }
-
-                            nodes = UpdateRT(nodes, newTable);
-                            break;
+                        sb.Append(line);
                     }
-                }
+
+                    string json = sb.ToString();
+                    Console.WriteLine($"Received: {json}");
+
+                    JObject receivedJson = JObject.Parse(json);
+
+                    Console.WriteLine($"Received: {line}");
+
+                        // parse the received JSON
+                        
+
+                        switch (receivedJson["operation"].ToString())
+                        {
+                            case "step":
+                                Console.WriteLine("Received a Message From Server " + receivedJson["id_of_sender"]);
+
+                                int[,] newTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
+                                JArray jsonArray = (JArray)receivedJson["rt"];
+                                for (int a = 0; a < jsonArray.Count; a++)
+                                {
+                                    JArray innerJsonArray = (JArray)jsonArray[a];
+                                    for (int b = 0; b < innerJsonArray.Count; b++)
+                                    {
+                                        newTable[a, b] = int.Parse(innerJsonArray[b].ToString());
+                                    }
+                                }
+
+                                for (int i = 0; i < nodes.Count; i++)
+                                {
+                                    if (nodes[i].id == Program.serverID)
+                                    {
+                                        nodes[i].numOfPackets++;
+                                        break;
+                                    }
+                                }
+
+                                nodes = UpdateRT(nodes, newTable);
+                                break;
+                        }
+                    }
+               
             }
             catch (Exception e)
             {
@@ -531,6 +601,8 @@ namespace DVPImplementation
             }
         }
     }
+
 }
+
 
 
