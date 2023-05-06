@@ -13,11 +13,6 @@ Follow commands to use program:![image](https://user-images.githubusercontent.co
 
 
 
-##  Tasks
-- Daniel Sarkisian : Handle methods for sending routing table (step) and updating routing tables.
-- Mao Hashimoto : Handle methods for parsing topology files.
-- Brian Barr : Handle methods for creating display table.
-- Anthony Jerez : Handle methods for disabling and crashing. 
 
 
 
