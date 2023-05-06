@@ -87,6 +87,22 @@ namespace DVPImplementation
                         break;
 
                     case "update":
+
+                        for(int i = 0; i < nodes.Count; i++)
+                        {
+                            if (nodes[i].id == serverID)
+                            {
+                                for (int s = 0; s < nodes[i].routingTable.GetLength(0); s++)
+                                {
+                                    for (int t = 0; t < nodes[i].routingTable.GetLength(1); t++)
+                                    {
+                                        routingTableTF[s, t] = nodes[i].routingTable[s, t];
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
                         int link1 = int.Parse(commands[1]);
                         int link2 = int.Parse(commands[2]);
                         string newCost = commands[3];
@@ -146,7 +162,7 @@ namespace DVPImplementation
                     default:
                         break;
                 }
-                   
+
 
             }
 
@@ -160,7 +176,7 @@ namespace DVPImplementation
             timer.Elapsed += DoStep;
             timer.AutoReset = true;
             timer.Enabled = true;
-           
+
         }
         public static void DoStep(object sender, ElapsedEventArgs e)
         {
@@ -181,52 +197,53 @@ namespace DVPImplementation
             Console.WriteLine("help");
         }
         private static void DoStep(List<Node> nodes)
+        {
+            foreach (var server in nodes)
             {
-                foreach (var server in nodes)
+                if (server.id == serverID)
                 {
-                    if (server.id == serverID)
+                    //Console.WriteLine("my servers id = " + server.Id);
+
+                    foreach (var neighbor in server.neighborsIdAndCost)
                     {
-                        //Console.WriteLine("my servers id = " + server.Id);
+                        string ipAddressOfNeighbor = "";
+                        int portOfNeighbor = 0;
 
-                        foreach (var neighbor in server.neighborsIdAndCost)
+                        // find ip of neighbor and send routing table to that neighbor
+                        foreach (var s in nodes)
                         {
-                            string ipAddressOfNeighbor = "";
-                            int portOfNeighbor = 0;
-
-                            // find ip of neighbor and send routing table to that neighbor
-                            foreach (var s in nodes)
+                            if (s.id == neighbor.Key)
                             {
-                                if (s.id == neighbor.Key)
-                                {
-                                    ipAddressOfNeighbor = s.ipAddress;
-                                    portOfNeighbor = s.port;
-                                    break;
-                                }
-                            }
-
-                            //Console.WriteLine("ipaddress of neighbor = " + ipAddressOfNeighbor);
-                            //Console.WriteLine("port of neighbor = " + portOfNeighbor);
-                            try
-                            {
-                                //Console.WriteLine("send message");
-                                SendRTtoNeighbor(ipAddressOfNeighbor, portOfNeighbor);
-                                //Console.WriteLine("message sent");
-                            }
-                            catch (Exception e)
-                            {
-                                // handle exception
+                                ipAddressOfNeighbor = s.ipAddress;
+                                portOfNeighbor = s.port;
+                                break;
                             }
                         }
-                        break;
+
+                        //Console.WriteLine("ipaddress of neighbor = " + ipAddressOfNeighbor);
+                        //Console.WriteLine("port of neighbor = " + portOfNeighbor);
+                        try
+                        {
+                            //Console.WriteLine("send message");
+                            SendRTtoNeighbor(ipAddressOfNeighbor, portOfNeighbor);
+                            //Console.WriteLine("message sent");
+                        }
+                        catch (Exception e)
+                        {
+                            // handle exception
+                        }
                     }
+                    break;
                 }
             }
+        }
 
-        
 
-        static void DisplayRT(List<Node> nodes) {
+
+        static void DisplayRT(List<Node> nodes)
+        {
             Console.WriteLine("Routing Table is:");
-           
+
             for (int i = 0; i < nodes.Count; i++)
             {
                 if (nodes[i].id == serverID)
@@ -292,13 +309,13 @@ namespace DVPImplementation
                 Console.WriteLine("Exception: " + e.ToString());
             }
         }
-        
+
 
 
 
         public static List<Node> UpdateRT(List<Node> nodes, int[,] newTable)
         {
-        
+
 
             // Initialize original and new routing tables
             int[,] myOriginalRoutingTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
@@ -345,13 +362,13 @@ namespace DVPImplementation
                     {
                         continue;
                     }
-                    if (myNewRoutingTable[j, k] < newTable[j,k])
+                    if (myNewRoutingTable[j, k] < newTable[j, k])
                     {
                         continue;
                     }
                     else
                     {
-                        myNewRoutingTable[j, k] = newTable[j,k];
+                        myNewRoutingTable[j, k] = newTable[j, k];
                     }
                 }
             }
@@ -363,7 +380,6 @@ namespace DVPImplementation
                 {
                     for (int k = 0; k < myNewRoutingTable.GetLength(1); k++)
                     {
-                        //skip server's cost to itself 
                         if (j == k)
                         {
                             continue;
@@ -441,7 +457,7 @@ namespace DVPImplementation
             catch (Exception e)
             {
                 Console.WriteLine("An error occurred while sending crash notification to all servers");
-                
+
             }
         }
         static List<Node> ReadTF(string file, List<Node> nodes)
@@ -451,7 +467,7 @@ namespace DVPImplementation
 
             Console.Write("Enter the server ID: ");
             string input = Console.ReadLine();
-            
+
             if (int.TryParse(input, out serverID))
             {
                 Console.WriteLine($"Server ID set to {serverID}");
@@ -466,7 +482,7 @@ namespace DVPImplementation
 
             try
             {
-                
+
                 StreamReader reader = new StreamReader(file);
                 string line;
 
@@ -479,7 +495,7 @@ namespace DVPImplementation
                     throw new Exception("Incorrect format1!");
                 }
 
-                if((line = reader.ReadLine()) != null)
+                if ((line = reader.ReadLine()) != null)
                 {
                     numofNeighbors = int.Parse(line);
                 }
@@ -488,9 +504,9 @@ namespace DVPImplementation
                     throw new Exception("Incorrect format2!");
                 }
 
-                for (int i=0; i < numOfServers; i++)
+                for (int i = 0; i < numOfServers; i++)
                 {
-                    if((line = reader.ReadLine()) != null)
+                    if ((line = reader.ReadLine()) != null)
                     {
                         string[] splitLine = line.Split(' ');
 
@@ -533,7 +549,7 @@ namespace DVPImplementation
                         }
                         else
                         {
-                          
+
                             newIdCost[int.Parse(splitLine[1])] = int.Parse(splitLine[2]);
                         }
                     }
@@ -551,7 +567,7 @@ namespace DVPImplementation
             {
                 if (server.GetId() == serverID)
                 {
-                    server.SetNeighborsIdAndCost(newIdCost); 
+                    server.SetNeighborsIdAndCost(newIdCost);
                 }
                 else
                 {
@@ -622,7 +638,7 @@ namespace DVPImplementation
                 Console.WriteLine(e.StackTrace);
             }
 
-            DoStep(nodes);
+            // DoStep(nodes);
         }
         private static void DisplayPackets(List<Node> nodes)
         {
@@ -635,7 +651,7 @@ namespace DVPImplementation
                     break;
                 }
             }
-            
+
         }
         private static void SendDisable(int dsid)
         {
@@ -775,7 +791,7 @@ namespace DVPImplementation
             return nodes;
         }
     }
-    
+
 
     public class Node
 
@@ -879,13 +895,13 @@ namespace DVPImplementation
             {
                 server = new TcpListener(IPAddress.Any, port);
                 server.Start();
-                
+
 
                 while (true)
                 {
                     Console.WriteLine("Listening for packets...");
                     TcpClient client = server.AcceptTcpClient();
-                   // Console.WriteLine("Client connected.");
+                    // Console.WriteLine("Client connected.");
 
                     NetworkStream stream = client.GetStream();
                     StreamReader reader = new StreamReader(stream);
@@ -898,44 +914,59 @@ namespace DVPImplementation
                     }
 
                     string json = sb.ToString();
-                  //  Console.WriteLine($"Received: {json}");
+                    //  Console.WriteLine($"Received: {json}");
 
                     JObject receivedJson = JObject.Parse(json);
 
                     //Console.WriteLine($"Received: {line}");
 
-                        // parse the received JSON
-                        
+                    // parse the received JSON
 
-                        switch (receivedJson["operation"].ToString())
-                        {
-                            case "step":
-                                Console.WriteLine("Received a Message From Server " + receivedJson["id_of_sender"]);
 
-                                int[,] newTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
-                                JArray jsonArray = (JArray)receivedJson["rt"];
-                                for (int a = 0; a < jsonArray.Count; a++)
+                    switch (receivedJson["operation"].ToString())
+                    {
+                        case "step":
+                            Console.WriteLine("Received a Message From Server " + receivedJson["id_of_sender"]);
+
+                            int[,] newTable = new int[nodes.Count + numOfDisabled, nodes.Count + numOfDisabled];
+                            JArray jsonArray = (JArray)receivedJson["rt"];
+                            for (int a = 0; a < jsonArray.Count; a++)
+                            {
+                                JArray innerJsonArray = (JArray)jsonArray[a];
+                                for (int b = 0; b < innerJsonArray.Count; b++)
                                 {
-                                    JArray innerJsonArray = (JArray)jsonArray[a];
-                                    for (int b = 0; b < innerJsonArray.Count; b++)
-                                    {
-                                        newTable[a, b] = int.Parse(innerJsonArray[b].ToString());
-                                    }
+                                    newTable[a, b] = int.Parse(innerJsonArray[b].ToString());
                                 }
+                            }
 
-                                for (int i = 0; i < nodes.Count; i++)
+                            for (int i = 0; i < nodes.Count; i++)
+                            {
+                                if (nodes[i].id == serverID)
                                 {
-                                    if (nodes[i].id == serverID)
-                                    {
-                                        nodes[i].numOfPackets++;
-                                        break;
-                                    }
+                                    nodes[i].numOfPackets++;
+                                    break;
                                 }
+                            }
 
-                                nodes = UpdateRT(nodes, newTable);
-                                break;
+                            nodes = UpdateRT(nodes, newTable);
+                            break;
 
                         case "update":
+
+                            for (int i = 0; i < nodes.Count; i++)
+                            {
+                                if (nodes[i].id == serverID)
+                                {
+                                    for (int s = 0; s < nodes[i].routingTable.GetLength(0); s++)
+                                    {
+                                        for (int t = 0; t < nodes[i].routingTable.GetLength(1); t++)
+                                        {
+                                            routingTableTF[s, t] = nodes[i].routingTable[s, t];
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
                             string newCost = receivedJson["cost"].ToString();
                             int server1 = int.Parse(receivedJson["update_server_id_1"].ToString());
                             int server2 = int.Parse(receivedJson["update_server_id_2"].ToString());
@@ -1014,8 +1045,8 @@ namespace DVPImplementation
 
 
                     }
-                    }
-               
+                }
+
             }
             catch (Exception e)
             {
@@ -1025,6 +1056,3 @@ namespace DVPImplementation
     }
 
 }
-
-
-
