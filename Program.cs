@@ -109,8 +109,21 @@ namespace DVPImplementation
                     case "step":
                         DoStep(nodes);
                         break;
+
                     case "packets":
                         DisplayPackets(nodes);
+                        break;
+
+                    case "disable":
+                        // Send this to all servers, not just neighbors
+                        int serverToDisable = int.Parse(commands[1]);
+                        if (serverToDisable == serverID) // serverID is equivalent to myServerId
+                        {
+                            Console.WriteLine("Cannot disable yourself");
+                            break;
+                        }
+                        SendDisable(serverToDisable);
+                        numOfDisabled++;
                         break;
                 }
 
@@ -541,6 +554,74 @@ namespace DVPImplementation
             }
             
         }
+        private static void SendDisable(int dsid)
+        {
+            // Iterate through the routingTableTF (converted from routingTableReadFromTopologyFile) 2D array
+            for (int i = 0; i < routingTableTF.GetLength(0); i++)
+            {
+                for (int j = 0; j < routingTableTF.GetLength(1); j++)
+                {
+                    if (j == (dsid - 1))
+                    {
+                        continue;
+                    }
+                    routingTableTF[j, dsid - 1] = 9999;
+                    routingTableTF[dsid - 1, j] = 9999;
+                }
+            }
+
+            // Iterate through the nodes (converted from allServers) list
+            for (int x = 0; x < nodes.Count; x++)
+            {
+                if (nodes[x].id == serverID) // serverID is equivalent to myServerId
+                {
+                    nodes[x].neighborsIdAndCost.Remove(dsid);
+
+                    for (int i = 0; i < routingTableTF.GetLength(0); i++)
+                    {
+                        for (int j = 0; j < routingTableTF.GetLength(1); j++)
+                        {
+                            nodes[x].routingTable[i, j] = routingTableTF[i, j];
+                        }
+                    }
+                    break;
+                }
+            }
+
+            // Create and populate a JObject (equivalent to JSONObject in Java)
+            JObject obj = new JObject
+    {
+        { "operation", "disable" },
+        { "disable_server_id", dsid }
+    };
+
+            // Iterate through the nodes list and send the JObject to each server
+            for (int i = 0; i < nodes.Count; i++)
+            {
+                if (nodes[i].id == serverID)
+                {
+                    continue;
+                }
+
+                IPAddress ip = IPAddress.Parse(nodes[i].ipAddress);
+                using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                {
+                    socket.Connect(ip, nodes[i].port);
+                    using (NetworkStream networkStream = new NetworkStream(socket))
+                    using (StreamWriter writer = new StreamWriter(networkStream, Encoding.UTF8))
+                    {
+                        writer.Write(obj.ToString());
+                    }
+                }
+            }
+
+            // Remove the server with ID dsid from the nodes list
+            nodes.RemoveAt(dsid - 1);
+
+            // Call the DoStep(nodes) method to update the routing tables in the network
+            DoStep(nodes);
+        }
+
 
 
         static List<Node> CreateTable(List<Node> nodes)
@@ -801,7 +882,52 @@ namespace DVPImplementation
                             }
 
                             break;
-                        }
+
+                        case "disable":
+                            int disableServerId = int.Parse(receivedJson["disable_server_id"].ToString());
+
+                            if (disableServerId == serverID) // serverID is equivalent to myServerId
+                            {
+                                Environment.Exit(1);
+                            }
+
+                            for (int i = 0; i < routingTableTF.GetLength(0); i++)
+                            {
+                                for (int j = 0; j < routingTableTF.GetLength(1); j++)
+                                {
+                                    if (j == (disableServerId - 1))
+                                    {
+                                        continue;
+                                    }
+                                    routingTableTF[j, disableServerId - 1] = 9999;
+                                    routingTableTF[disableServerId - 1, j] = 9999;
+                                }
+                            }
+
+                            for (int x = 0; x < nodes.Count; x++)
+                            {
+                                if (nodes[x].id == serverID)
+                                {
+                                    nodes[x].neighborsIdAndCost.Remove(disableServerId);
+
+                                    for (int i = 0; i < routingTableTF.GetLength(0); i++)
+                                    {
+                                        for (int j = 0; j < routingTableTF.GetLength(1); j++)
+                                        {
+                                            nodes[x].routingTable[i, j] = routingTableTF[i, j];
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+
+                            nodes.RemoveAt(disableServerId - 1);
+                            numOfDisabled++;
+                            break;
+
+
+
+                    }
                     }
                
             }
