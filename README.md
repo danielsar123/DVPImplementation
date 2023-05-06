@@ -2,7 +2,7 @@
 
 # Comp 429 Proj2
 
-This appplication is written with C# and implements distance vector routing algorithm. 
+This application is written with C# and implements distance vector routing algorithm. 
 
 To Build :
 You will need four topology files with this format:
