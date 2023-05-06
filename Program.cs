@@ -77,6 +77,7 @@ namespace DVPImplementation
                         }
 
                         Console.WriteLine(commands[0] + " SUCCESS");
+                        ListCommands();
                         break;
 
                     case "display":
@@ -134,6 +135,9 @@ namespace DVPImplementation
                         Console.WriteLine(commands[0] + " SUCCESS");
                         Environment.Exit(1);
                         break;
+                    case "help":
+                        ListCommands();
+                        break;
 
                     default:
                         break;
@@ -144,9 +148,19 @@ namespace DVPImplementation
 
 
         }
-        
-        
-            private static void DoStep(List<Node> nodes)
+
+        public static void ListCommands()
+        {
+            Console.WriteLine("Available commands:");
+            Console.WriteLine("update <Server1ID> <Server2ID> <newLinkCost>");
+            Console.WriteLine("packets");
+            Console.WriteLine("display");
+            Console.WriteLine("startInterval");
+            Console.WriteLine("disable <serverID>");
+            Console.WriteLine("crash");
+            Console.WriteLine("help");
+        }
+        private static void DoStep(List<Node> nodes)
             {
                 foreach (var server in nodes)
                 {
