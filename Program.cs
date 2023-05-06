@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using static DVPImplementation.Program;
 using System.Runtime.InteropServices.ComTypes;
 using Newtonsoft.Json;
+using Timer = System.Timers.Timer;
 
 namespace DVPImplementation
 {
@@ -138,6 +139,9 @@ namespace DVPImplementation
                     case "help":
                         ListCommands();
                         break;
+                    case "startInterval":
+                        StartTimer(updateInterval);
+                        break;
 
                     default:
                         break;
@@ -147,6 +151,22 @@ namespace DVPImplementation
             }
 
 
+        }
+        public static Timer timer;
+        public static void StartTimer(int interval)
+        {
+            int convertToMili = interval * 1000;
+            timer = new Timer(convertToMili);
+            timer.Elapsed += DoStep;
+            timer.AutoReset = true;
+            timer.Enabled = true;
+           
+        }
+        public static void DoStep(object sender, ElapsedEventArgs e)
+        {
+            // Call the original DoStep method with the required parameter
+            Console.Write("hello");
+            DoStep(nodes);
         }
 
         public static void ListCommands()
@@ -261,7 +281,7 @@ namespace DVPImplementation
                 NetworkStream stream = client.GetStream();
                 StreamWriter writer = new StreamWriter(stream);
                 StreamReader reader = new StreamReader(stream);
-                Console.WriteLine("Sending JSON: " + obj.ToString());
+                Console.WriteLine("Routing Table Sent...");
                 writer.Write(obj.ToString());
                 writer.Flush();
 
