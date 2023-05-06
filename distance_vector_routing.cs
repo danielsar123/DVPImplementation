@@ -363,6 +363,7 @@ namespace DVPImplementation
                 {
                     for (int k = 0; k < myNewRoutingTable.GetLength(1); k++)
                     {
+                        //skip server's cost to itself 
                         if (j == k)
                         {
                             continue;
@@ -621,7 +622,7 @@ namespace DVPImplementation
                 Console.WriteLine(e.StackTrace);
             }
 
-           // DoStep(nodes);
+            DoStep(nodes);
         }
         private static void DisplayPackets(List<Node> nodes)
         {
