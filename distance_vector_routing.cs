@@ -188,6 +188,7 @@ namespace DVPImplementation
         public static void ListCommands()
         {
             Console.WriteLine("Available commands:");
+            Console.WriteLine("step");
             Console.WriteLine("update <Server1ID> <Server2ID> <newLinkCost>");
             Console.WriteLine("packets");
             Console.WriteLine("display");
