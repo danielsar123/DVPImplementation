@@ -76,14 +76,12 @@ namespace DVPImplementation
                             }
                         }
 
-                        Console.WriteLine(commands[0] + " Success!");
+                        Console.WriteLine(commands[0] + " SUCCESS");
                         break;
 
                     case "display":
                         DisplayRT(nodes);
-                        Console.WriteLine(commands[0] + " Success!");
-                        break;
-                    default:
+                        Console.WriteLine(commands[0] + " SUCCESS");
                         break;
 
                     case "update":
@@ -99,19 +97,23 @@ namespace DVPImplementation
                         else if (link2 == serverID)
                         {
                             SendCost(link2, link1, newCost);
+                            Console.WriteLine(commands[0] + " SUCCESS");
                             break;
                         }
                         else
                         {
                             SendCost(link1, link2, newCost);
+                            Console.WriteLine(commands[0] + " SUCCESS");
                             break;
                         }
                     case "step":
                         DoStep(nodes);
+                        Console.WriteLine(commands[0] + " SUCCESS");
                         break;
 
                     case "packets":
                         DisplayPackets(nodes);
+                        Console.WriteLine(commands[0] + " SUCCESS");
                         break;
 
                     case "disable":
@@ -123,11 +125,20 @@ namespace DVPImplementation
                             break;
                         }
                         SendDisable(serverToDisable);
+                        Console.WriteLine(commands[0] + " SUCCESS");
                         numOfDisabled++;
                         break;
+
+                    case "crash":
+                        SendCrash();
+                        Console.WriteLine(commands[0] + " SUCCESS");
+                        Environment.Exit(1);
+                        break;
+
+                    default:
+                        break;
                 }
-
-
+                   
 
             }
 
@@ -360,6 +371,43 @@ namespace DVPImplementation
             }
 
             return nodes;
+        }
+
+
+        private static void SendCrash()
+        {
+            JObject obj = new JObject
+            {
+
+                {"operation","crash" }
+
+            };
+            try
+            {
+                for (int i = 0; i < nodes.Count; i++)
+                {
+                    if (nodes[i].id == serverID)
+                    {
+                        continue;
+                    }
+
+                    IPAddress ip = IPAddress.Parse(nodes[i].ipAddress);
+                    using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                    {
+                        socket.Connect(ip, nodes[i].port);
+                        using (NetworkStream networkStream = new NetworkStream(socket))
+                        using (StreamWriter writer = new StreamWriter(networkStream, Encoding.UTF8))
+                        {
+                            writer.Write(obj.ToString());
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("An error occurred while sending crash notification to all servers");
+                
+            }
         }
         static List<Node> ReadTF(string file, List<Node> nodes)
         {
@@ -800,9 +848,9 @@ namespace DVPImplementation
 
                 while (true)
                 {
-                    Console.WriteLine("Waiting for client connection...");
+                    Console.WriteLine("Listening for packets...");
                     TcpClient client = server.AcceptTcpClient();
-                    Console.WriteLine("Client connected.");
+                   // Console.WriteLine("Client connected.");
 
                     NetworkStream stream = client.GetStream();
                     StreamReader reader = new StreamReader(stream);
@@ -924,7 +972,10 @@ namespace DVPImplementation
                             nodes.RemoveAt(disableServerId - 1);
                             numOfDisabled++;
                             break;
-
+                        case "crash":
+                            Console.WriteLine("CRASH SUCCESSFUL");
+                            Environment.Exit(1);
+                            break;
 
 
                     }
