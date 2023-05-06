@@ -135,6 +135,22 @@ namespace DVPImplementation
                         break;
 
                     case "disable":
+
+                        for (int i = 0; i < nodes.Count; i++)
+                        {
+                            if (nodes[i].id == serverID)
+                            {
+                                for (int s = 0; s < nodes[i].routingTable.GetLength(0); s++)
+                                {
+                                    for (int t = 0; t < nodes[i].routingTable.GetLength(1); t++)
+                                    {
+                                        routingTableTF[s, t] = nodes[i].routingTable[s, t];
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
                         // Send this to all servers, not just neighbors
                         int serverToDisable = int.Parse(commands[1]);
                         if (serverToDisable == serverID) // serverID is equivalent to myServerId
@@ -656,7 +672,7 @@ namespace DVPImplementation
         }
         private static void SendDisable(int dsid)
         {
-            // Iterate through the routingTableTF (converted from routingTableReadFromTopologyFile) 2D array
+            
             for (int i = 0; i < routingTableTF.GetLength(0); i++)
             {
                 for (int j = 0; j < routingTableTF.GetLength(1); j++)
@@ -1000,6 +1016,21 @@ namespace DVPImplementation
 
                         case "disable":
                             int disableServerId = int.Parse(receivedJson["disable_server_id"].ToString());
+
+                            for (int i = 0; i < nodes.Count; i++)
+                            {
+                                if (nodes[i].id == serverID)
+                                {
+                                    for (int s = 0; s < nodes[i].routingTable.GetLength(0); s++)
+                                    {
+                                        for (int t = 0; t < nodes[i].routingTable.GetLength(1); t++)
+                                        {
+                                            routingTableTF[s, t] = nodes[i].routingTable[s, t];
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
 
                             if (disableServerId == serverID) // serverID is equivalent to myServerId
                             {
